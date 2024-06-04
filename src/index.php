@@ -17,4 +17,6 @@
  * limitations under the License.
  */
 
-echo "200 - OK\n";
+header("Content-Type: text/plain");
+http_response_code(200);
+echo "OK";
