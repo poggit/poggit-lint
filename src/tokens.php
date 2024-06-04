@@ -17,8 +17,21 @@
  * limitations under the License.
  */
 
-// '/poggit-lint/' is the path to the entry point of the application in the docker container, change if running locally.
-const POGGIT_INSTALL_PATH = "/poggit-lint/"; // absolute path!
+$input = file_get_contents("php://input");
+if($input === false) {
+    http_response_code(400);
+    echo "Failed to read input";
+    exit;
+}
 
-/** @noinspection PhpIncludeInspection */
-include_once realpath(POGGIT_INSTALL_PATH) . "/entry.php";
+$tokens = token_get_all($input);
+foreach($tokens as &$token) {
+    if(is_array($token)) $token[0] = token_name((int)$token[0]);
+}
+
+header("Content-Type: application/json");
+http_response_code(200);
+echo json_encode([
+    "php" => PHP_VERSION_ID,
+    "tokens" => $tokens
+]);
