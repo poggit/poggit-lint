@@ -17,33 +17,42 @@
  * limitations under the License.
  */
 
-$demo_response = [
-    "lints" => [
-        [
-            "type" => "LintName/ID?",
-            "severity" => 5,
-            "message" => "Unexpected token",
-            "location" => [
-                "startLine" => 5,
-                "endLine" => 5,
-                "startColumn" => 10,
-                "endColumn" => 15
-            ]
-        ],
-        [
-            "type" => "LintName/ID?",
-            "severity" => 5,
-            "message" => "Unexpected token",
-            "location" => [
-                "startLine" => 10,
-                "endLine" => 10,
-                "startColumn" => 20,
-                "endColumn" => 25
-            ]
-        ]
-    ]
-];
+// Read and validate the input code.
+$input = file_get_contents("php://input");
+if($input === false) {
+    http_response_code(400);
+    echo "Failed to read input";
+    exit;
+}
+
+// Create a temporary file in the systems temp dir.
+$temp_file = tempnam(sys_get_temp_dir(), 'lint');
+if($temp_file === false) {
+    http_response_code(500);
+    echo "Failed to create temp file";
+    exit;
+}
+
+file_put_contents($temp_file, $input);
+
+// Run the linter
+$output = [];
+exec("php -l " . escapeshellarg($temp_file), $output, $exit_code);
+
+// Remove the temp file
+unlink($temp_file);
+
+// Removes the first line of the output (empty) and create the string response.
+$output = trim(implode("\n", $output));
+
+// Replace file path with "{POGGIT_LINT_FILE}"
+$output = str_replace($temp_file, "{POGGIT_LINT_FILE}", $output);
+
+if($exit_code === 0) $output = "OK";
 
 header("Content-Type: application/json");
 http_response_code(200);
-echo json_encode($demo_response);
+echo json_encode([
+    "php" => PHP_VERSION_ID,
+    "lint" => $output
+]);
